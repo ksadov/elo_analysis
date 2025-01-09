@@ -5,3 +5,5 @@ If you ran the script `get_fide_html.py` followed by `make_csv.py`, you'd end up
 
 # Analysis
 `plot_top_players.py` will display a plot of the Elo trajectories of the top N players at a given date.
+
+`magnus.py` will calculate some predictions related to Magnus Carlsen's performance and create a plot of simulated future Elo trajectories.
