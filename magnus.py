@@ -1,4 +1,5 @@
 import numpy as np
+import argparse
 from chess_elo_predictor import ChessEloPredictor
 
 
@@ -46,8 +47,13 @@ def analyze_magnus_scenarios(
         )
 
         # Peak broken check
-        all_final_ratings = [r[sim, -1] for r in simulated_ratings.values()]
-        results["peak_broken_by_2026"] += int(max(all_final_ratings) > magnus_peak)
+        for timestep in range(len(months) + 1):
+            all_ratings_at_timestep = [
+                r[sim, timestep] for r in simulated_ratings.values()
+            ]
+            if max(all_ratings_at_timestep) > magnus_peak:
+                results["peak_broken_by_2026"] += 1
+                break
 
     # Convert counts to probabilities
     for key in results:
@@ -57,10 +63,29 @@ def analyze_magnus_scenarios(
 
 
 if __name__ == "__main__":
-    # Usage example
-    predictor = ChessEloPredictor("elo.csv")
-
-    # Get probability predictions
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--elo_csv",
+        type=str,
+        default="elo.csv",
+        help="Path to CSV file with historical Elo ratings",
+    )
+    parser.add_argument(
+        "--n_simulations",
+        type=int,
+        default=1000,
+        help="Number of simulations to run for each scenario",
+    )
+    parser.add_argument(
+        "--matches_per_month",
+        type=int,
+        default=5,
+        help="Number of matches to simulate per month",
+    )
+    args = parser.parse_args()
+    predictor = ChessEloPredictor(
+        args.elo_csv, args.n_simulations, args.matches_per_month
+    )
     results = analyze_magnus_scenarios(predictor)
     print("\nProbability Estimates:")
     print(f"Magnus highest rated in July 2025: {results['july_2025_highest']:.1%}")
@@ -70,6 +95,5 @@ if __name__ == "__main__":
     )
     print(f"Someone breaks Magnus's peak by 2026: {results['peak_broken_by_2026']:.1%}")
 
-    # Plot sample paths for Magnus
     plot = predictor.plot_sample_paths("Carlsen, Magnus")
     plot.show()
