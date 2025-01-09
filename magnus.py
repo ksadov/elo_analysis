@@ -73,7 +73,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--n_simulations",
         type=int,
-        default=1000,
+        default=10000,
         help="Number of simulations to run for each scenario",
     )
     parser.add_argument(
@@ -97,3 +97,4 @@ if __name__ == "__main__":
 
     plot = predictor.plot_sample_paths("Carlsen, Magnus")
     plot.show()
+    plot.savefig("magnus_paths.png")
