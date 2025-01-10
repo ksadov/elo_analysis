@@ -36,19 +36,20 @@ class ChessEloPredictor:
                 latest_ratings[player] = ratings.iloc[-1]
         return latest_ratings
 
-    def calculate_win_probability(self, rating_a, rating_b):
+    def calculate_expected_score(self, rating_a, rating_b):
         """Calculate expected score (win probability + 0.5 * draw probability) for player A"""
         return 1 / (1 + 10 ** ((rating_b - rating_a) / 400))
 
     def simulate_match(self, rating_a, rating_b):
         """Simulate a match between two players based on Elo probabilities"""
-        win_prob = self.calculate_win_probability(rating_a, rating_b)
+        expected_score = self.calculate_expected_score(rating_a, rating_b)
         result = np.random.random()
 
         draw_prob = draw_probability(abs(rating_a - rating_b))
+        assert expected_score + draw_prob/2 < 1.0, "Draw probability too high"
         if result < draw_prob:  # Draw
             return 0.5
-        elif result < win_prob * (1 - draw_prob) + draw_prob:  # Win
+        elif result < expected_score + draw_prob/2:  # Win
             return 1.0
         else:  # Loss
             return 0.0
@@ -106,10 +107,12 @@ class ChessEloPredictor:
                     monthly_rating_change = 0
 
                     for opponent in opponents:
+                        # Simulate using static "true Elo"
                         result = self.simulate_match(
-                            rating_a, current_sim_ratings[opponent]
+                            self.current_ratings[player_a], self.current_ratings[opponent]
                         )
-                        expected_score = self.calculate_win_probability(
+                        # Adjust based on current simulated Elo
+                        expected_score = self.calculate_expected_score(
                             rating_a, current_sim_ratings[opponent]
                         )
                         rating_change = k_factor * (result - expected_score)
