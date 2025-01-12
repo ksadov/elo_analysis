@@ -165,7 +165,6 @@ def main():
     predictor = ChessEloPredictor(
         args.elo_csv, args.n_simulations, args.matches_per_month, args.use_weighted
     )
-    """
     prodigies = [
         "Praggnanandhaa R",
         "Gukesh D",
@@ -183,7 +182,7 @@ def main():
     plt = plot_projections(predictor, prodigies)
     plt.show()
     plt.savefig("prodigy_elo_projections.png")
-    """
+
     cross_2800_candidates = [
         "Erigaisi Arjun",
         "Gukesh D",
