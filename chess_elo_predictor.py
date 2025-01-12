@@ -18,14 +18,35 @@ def draw_probability(rating_diff, base_draw=0.20, steepness=0.006):
 
 
 class ChessEloPredictor:
-    def __init__(self, csv_path, n_simulations=10000, matches_per_month=5):
+    def __init__(
+        self,
+        csv_path,
+        n_simulations=10000,
+        matches_per_month=5,
+        use_weighted_rating=True,
+    ):
         self.df = pd.read_csv(csv_path, index_col=0)
         self.df.columns = pd.to_datetime(self.df.columns)
         self.n_simulations = n_simulations
         self.matches_per_month = matches_per_month
 
         # Get initial ratings and active players
-        self.current_ratings = self.get_latest_ratings()
+        if use_weighted_rating:
+            self.true_ratings = self.init_weighted_ratings()
+        else:
+            self.true_ratings = self.get_latest_ratings()
+
+    def init_weighted_ratings(self):
+        """Take a weighted average of historical ratings to get initial "true" ratings"""
+        # Weighted average of historical ratings, with bias towards recent ratings
+        weighted_ratings = {}
+        for player in self.df.index:
+            ratings = self.df.loc[player].dropna()
+            if len(ratings) > 0:
+                weights = np.arange(len(ratings), 0, -1)
+                weighted_rating = np.average(ratings, weights=weights)
+                weighted_ratings[player] = weighted_rating
+        return weighted_ratings
 
     def get_latest_ratings(self):
         """Get the most recent valid rating for each player"""
@@ -46,10 +67,10 @@ class ChessEloPredictor:
         result = np.random.random()
 
         draw_prob = draw_probability(abs(rating_a - rating_b))
-        assert expected_score + draw_prob/2 < 1.0, "Draw probability too high"
+        assert expected_score + draw_prob / 2 < 1.0, "Draw probability too high"
         if result < draw_prob:  # Draw
             return 0.5
-        elif result < expected_score + draw_prob/2:  # Win
+        elif result < expected_score + draw_prob / 2:  # Win
             return 1.0
         else:  # Loss
             return 0.0
@@ -59,12 +80,12 @@ class ChessEloPredictor:
         months = pd.date_range(start_date, end_date, freq="M")
         simulated_ratings = {
             player: np.zeros((self.n_simulations, len(months) + 1))
-            for player in self.current_ratings
+            for player in self.true_ratings
         }
 
         # Set initial ratings for all simulations
         for player in simulated_ratings:
-            simulated_ratings[player][:, 0] = self.current_ratings[player]
+            simulated_ratings[player][:, 0] = self.true_ratings[player]
 
         # Run simulations
         for sim in tqdm(range(self.n_simulations)):
@@ -109,7 +130,8 @@ class ChessEloPredictor:
                     for opponent in opponents:
                         # Simulate using static "true Elo"
                         result = self.simulate_match(
-                            self.current_ratings[player_a], self.current_ratings[opponent]
+                            self.true_ratings[player_a],
+                            self.true_ratings[opponent],
                         )
                         # Adjust based on current simulated Elo
                         expected_score = self.calculate_expected_score(

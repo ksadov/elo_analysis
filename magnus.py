@@ -82,9 +82,14 @@ if __name__ == "__main__":
         default=5,
         help="Number of matches to simulate per month",
     )
+    parser.add_argument(
+        "--use_weighted",
+        action="store_true",
+        help='Use weighted sampling to calculate "true" Elo for matches',
+    )
     args = parser.parse_args()
     predictor = ChessEloPredictor(
-        args.elo_csv, args.n_simulations, args.matches_per_month
+        args.elo_csv, args.n_simulations, args.matches_per_month, args.use_weighted
     )
     results = analyze_magnus_scenarios(predictor)
     print("\nProbability Estimates:")
