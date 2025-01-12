@@ -1,3 +1,4 @@
+from webbrowser import get
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -31,10 +32,11 @@ class ChessEloPredictor:
         self.matches_per_month = matches_per_month
 
         # Get initial ratings and active players
+        self.current_ratings = self.get_latest_ratings()
         if use_weighted_rating:
             self.true_ratings = self.init_weighted_ratings()
         else:
-            self.true_ratings = self.get_latest_ratings()
+            self.true_ratings = self.current_ratings
 
     def init_weighted_ratings(self):
         """Take a weighted average of historical ratings to get initial "true" ratings"""
@@ -43,8 +45,10 @@ class ChessEloPredictor:
         for player in self.df.index:
             ratings = self.df.loc[player].dropna()
             if len(ratings) > 0:
-                weights = np.arange(len(ratings), 0, -1)
-                weighted_rating = np.average(ratings, weights=weights)
+                # drop na values
+                ratings_no_na = ratings.dropna()
+                weights = np.arange(len(ratings_no_na), 0, -1)
+                weighted_rating = np.average(ratings_no_na, weights=weights)
                 weighted_ratings[player] = weighted_rating
         return weighted_ratings
 

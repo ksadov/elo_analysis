@@ -1,3 +1,4 @@
+from math import e
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -78,24 +79,27 @@ def analyze_2800_breakthrough(predictor, players):
         "2025-01-01", "2025-12-31"
     )
 
-    # Only consider players currently below 2800
-    eligible_players = [p for p in players if predictor.current_ratings[p] < 2800]
-    breakthrough_counts = {player: 0 for player in eligible_players}
+    breakthrough_counts = {player: 0 for player in players}
 
     for sim in range(predictor.n_simulations):
         first_breakthrough = None
         earliest_month = len(months)
 
-        for player in eligible_players:
-            ratings = simulated_ratings[player][sim]
-            breakthrough_month = np.argmax(ratings > 2800)
-
-            if breakthrough_month < len(months) and breakthrough_month < earliest_month:
-                earliest_month = breakthrough_month
-                first_breakthrough = player
-
-        if first_breakthrough:
-            breakthrough_counts[first_breakthrough] += 1
+        for player in players:
+            if first_breakthrough is not None:
+                break
+            months_below_2800 = np.where(simulated_ratings[player][sim] < 2800)[0]
+            if len(months_below_2800) == 0:
+                continue
+            first_month_below_2800 = months_below_2800[0]
+            for month in range(len(months)):
+                if (
+                    simulated_ratings[player][sim, month] >= 2800
+                    and month > first_month_below_2800
+                ):
+                    breakthrough_counts[player] += 1
+                    first_breakthrough = player
+                    break
 
     probabilities = {
         player: count / predictor.n_simulations
@@ -143,7 +147,7 @@ def main():
     parser.add_argument(
         "--n_simulations",
         type=int,
-        default=10000,
+        default=1000,
         help="Number of simulations to run for each scenario",
     )
     parser.add_argument(
@@ -152,11 +156,17 @@ def main():
         default=5,
         help="Number of matches to simulate per month",
     )
+    parser.add_argument(
+        "--use_weighted",
+        action="store_true",
+        help='Use weighted sampling to calculate "true" Elo for matches',
+    )
     args = parser.parse_args()
     predictor = ChessEloPredictor(
-        args.elo_csv, args.n_simulations, args.matches_per_month
+        args.elo_csv, args.n_simulations, args.matches_per_month, args.use_weighted
     )
-    players = [
+    """
+    prodigies = [
         "Praggnanandhaa R",
         "Gukesh D",
         "Keymer, Vincent",
@@ -166,15 +176,33 @@ def main():
         "Niemann, Hans Moke",
         "Wei, Yi",
     ]
-    highest_elo_prob = analyze_highest_elo_probability(predictor, players)
-    print("Probability of highest Elo at end of 2025 for selected players:")
+    highest_elo_prob = analyze_highest_elo_probability(predictor, prodigies)
+    print("Probability of highest Elo at end of 2025 for selected prodigies:")
     for player, prob in highest_elo_prob.items():
         print(f"{player}: {prob:.2%}")
-    plt = plot_projections(predictor, players)
+    plt = plot_projections(predictor, prodigies)
     plt.show()
     plt.savefig("prodigy_elo_projections.png")
+    """
+    cross_2800_candidates = [
+        "Erigaisi Arjun",
+        "Gukesh D",
+        "Caruana, Fabiano",
+        "Abdusattorov, Nodirbek",
+        "Firouzja, Alireza",
+        "Nakamura, Hikaru",
+        "Nepomniachtchi, Ian",
+        "Praggnanandhaa R",
+        "Ding, Liren",
+        "So, Wesley",
+        "Niemann, Hans Moke",
+        "Keymer, Vincent",
+        "Vidit, Santosh Gujrathi",
+        "Rapport, Richard",
+        "Giri, Anish",
+    ]
 
-    breakthrough_probs = analyze_2800_breakthrough(predictor, players)
+    breakthrough_probs = analyze_2800_breakthrough(predictor, cross_2800_candidates)
     print("\nProbability of breaking 2800 before end of 2025:")
     for player, prob in breakthrough_probs.items():
         print(f"{player}: {prob:.2%}")
