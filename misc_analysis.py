@@ -157,13 +157,14 @@ def main():
         help="Number of matches to simulate per month",
     )
     parser.add_argument(
-        "--use_weighted",
-        action="store_true",
-        help='Use weighted sampling to calculate "true" Elo for matches',
+        "--weighting_period",
+        type=int,
+        default=0,
+        help='Number of months to consider to calculate "true" Elo ratings',
     )
     args = parser.parse_args()
     predictor = ChessEloPredictor(
-        args.elo_csv, args.n_simulations, args.matches_per_month, args.use_weighted
+        args.elo_csv, args.n_simulations, args.matches_per_month, args.weighting_period
     )
     prodigies = [
         "Praggnanandhaa R",

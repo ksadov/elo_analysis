@@ -24,7 +24,7 @@ class ChessEloPredictor:
         csv_path,
         n_simulations=10000,
         matches_per_month=5,
-        use_weighted_rating=True,
+        weighting_period=0,
     ):
         self.df = pd.read_csv(csv_path, index_col=0)
         self.df.columns = pd.to_datetime(self.df.columns)
@@ -33,20 +33,20 @@ class ChessEloPredictor:
 
         # Get initial ratings and active players
         self.current_ratings = self.get_latest_ratings()
-        if use_weighted_rating:
-            self.true_ratings = self.init_weighted_ratings()
+        if weighting_period > 0:
+            self.true_ratings = self.init_weighted_ratings(weighting_period)
         else:
             self.true_ratings = self.current_ratings
 
-    def init_weighted_ratings(self):
+    def init_weighted_ratings(self, weighting_period):
         """Take a weighted average of historical ratings to get initial "true" ratings"""
         # Weighted average of historical ratings, with bias towards recent ratings
         weighted_ratings = {}
         for player in self.df.index:
             ratings = self.df.loc[player].dropna()
             if len(ratings) > 0:
-                # drop na values
-                ratings_no_na = ratings.dropna()
+                # drop na values and take last weighting_period ratings
+                ratings_no_na = ratings.dropna().tail(weighting_period)
                 weights = np.arange(len(ratings_no_na), 0, -1)
                 weighted_rating = np.average(ratings_no_na, weights=weights)
                 weighted_ratings[player] = weighted_rating
@@ -89,7 +89,7 @@ class ChessEloPredictor:
 
         # Set initial ratings for all simulations
         for player in simulated_ratings:
-            simulated_ratings[player][:, 0] = self.true_ratings[player]
+            simulated_ratings[player][:, 0] = self.current_ratings[player]
 
         # Run simulations
         for sim in tqdm(range(self.n_simulations)):
